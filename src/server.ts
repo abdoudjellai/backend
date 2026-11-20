@@ -1,8 +1,8 @@
 import type { Server } from "node:http";
 import { createApp } from "./app.js";
-import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
+import { storage } from "./storage/index.js";
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -24,7 +24,8 @@ async function shutdown(reason: string, exitCode: number): Promise<void> {
     if (server !== undefined) {
       await new Promise<void>((resolve, reject) => server?.close((error) => (error ? reject(error) : resolve())));
     }
-    await disconnectDatabase();
+    // Waits for pending writes so no data is lost on shutdown.
+    await storage.close();
     logger.info("Shutdown complete");
   } catch (error) {
     logger.error({ err: error }, "Error during shutdown");
@@ -34,10 +35,9 @@ async function shutdown(reason: string, exitCode: number): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  // Fail fast: do not accept traffic until MongoDB, the source of truth, is reachable.
-  await connectDatabase(env.MONGODB_URI, {
-    serverSelectionTimeoutMS: env.MONGODB_SERVER_SELECTION_TIMEOUT_MS,
-  });
+  // Fail fast: do not accept traffic until every storage file (the source of truth) is loaded.
+  await storage.open();
+  logger.info({ directory: storage.directory, records: storage.counts() }, "Storage opened");
 
   const app = createApp();
   server = app.listen(env.PORT, () => {
@@ -61,7 +61,7 @@ process.on("uncaughtException", (error) => {
 });
 
 main().catch((error: unknown) => {
-  // Log name + message only: driver errors embed large topology descriptions.
+  // Log name + message only: the message already says what to fix.
   const err = error instanceof Error ? { name: error.name, message: error.message } : { message: String(error) };
   logger.fatal({ err }, "Failed to start server");
   void shutdown("startup_failure", 1);

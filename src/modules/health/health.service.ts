@@ -1,20 +1,20 @@
-import { getDatabaseStatus, type DatabaseStatus } from "../../config/database.js";
+import { storage } from "../../storage/index.js";
 
 export interface HealthReport {
   status: "ok" | "unavailable";
   timestamp: string;
   uptimeSeconds: number;
   checks: {
-    database: DatabaseStatus;
+    storage: "ok" | "unavailable";
   };
 }
 
-export function getHealthReport(): HealthReport {
-  const database = getDatabaseStatus();
+export async function getHealthReport(): Promise<HealthReport> {
+  const storageOk = await storage.isHealthy();
   return {
-    status: database === "connected" ? "ok" : "unavailable",
+    status: storageOk ? "ok" : "unavailable",
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.round(process.uptime()),
-    checks: { database },
+    checks: { storage: storageOk ? "ok" : "unavailable" },
   };
 }

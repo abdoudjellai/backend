@@ -7,7 +7,7 @@ import { logger } from "./config/logger.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import { requestId } from "./middleware/request-id.js";
 import { healthRouter } from "./modules/health/health.routes.js";
-import { apiRouter } from "./routes/index.js";
+import { createApiRouter } from "./routes/index.js";
 
 /** Maximum accepted JSON body size. AI callbacks and webhooks are small, bounded payloads. */
 export const JSON_BODY_LIMIT = "100kb";
@@ -67,7 +67,7 @@ export function createApp(): Express {
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
   app.use("/health", healthRouter);
-  app.use("/api/v1", apiRouter);
+  app.use("/api/v1", createApiRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

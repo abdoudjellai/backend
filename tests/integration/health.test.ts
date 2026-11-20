@@ -1,65 +1,41 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { readdir, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
 import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { createApp } from "../../src/app.js";
-import { connectDatabase, disconnectDatabase, getDatabaseStatus } from "../../src/config/database.js";
+import { storage } from "../../src/storage/index.js";
 
-// An isolated, throwaway MongoDB instance — never a real database.
-let mongo: MongoMemoryServer;
 const app = createApp();
 
-beforeAll(async () => {
-  mongo = await MongoMemoryServer.create();
-});
-
 afterAll(async () => {
-  await disconnectDatabase();
-  await mongo.stop();
+  await storage.close();
 });
 
 describe("GET /health", () => {
-  it("returns 503 before the database is connected", async () => {
-    expect(getDatabaseStatus()).toBe("disconnected");
+  it("returns 503 before storage is open", async () => {
     const res = await request(app).get("/health");
     expect(res.status).toBe(503);
-    expect(res.body.success).toBe(false);
     expect(res.body.error.code).toBe("SERVICE_UNAVAILABLE");
-    expect(res.body.error.details.checks.database).toBe("disconnected");
+    expect(res.body.error.details.checks.storage).toBe("unavailable");
   });
 
-  it("returns 200 with database status once connected", async () => {
-    await connectDatabase(mongo.getUri(), { serverSelectionTimeoutMS: 5_000 });
-    expect(getDatabaseStatus()).toBe("connected");
-
+  it("returns 200 once storage is open, and initializes every JSON file", async () => {
+    await storage.open();
     const res = await request(app).get("/health");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      success: true,
-      data: {
-        status: "ok",
-        timestamp: expect.any(String),
-        uptimeSeconds: expect.any(Number),
-        checks: { database: "connected" },
-      },
-      requestId: expect.any(String),
-    });
-    expect(new Date(res.body.data.timestamp).toISOString()).toBe(res.body.data.timestamp);
+    expect(res.body.data).toMatchObject({ status: "ok", checks: { storage: "ok" } });
+
+    const files = (await readdir(storage.directory)).sort();
+    expect(files).toEqual(["ai-analytics.json", "customers.json", "orders.json", "products.json", "stores.json"]);
+    for (const file of files) {
+      expect(JSON.parse(await readFile(join(storage.directory, file), "utf8"))).toEqual([]);
+    }
   });
 
-  it("returns 503 again after the database disconnects", async () => {
-    await disconnectDatabase();
+  it("returns 503 when a storage file disappears, without exposing file paths", async () => {
+    await rm(join(storage.directory, "orders.json"));
     const res = await request(app).get("/health");
     expect(res.status).toBe(503);
-    expect(res.body.error.details.checks.database).toBe("disconnected");
-  });
-});
-
-describe("connectDatabase", () => {
-  it("rejects when MongoDB is unreachable instead of hanging", async () => {
-    // Port 1 is reserved and will refuse connections.
-    await expect(
-      connectDatabase("mongodb://127.0.0.1:1/unreachable", { serverSelectionTimeoutMS: 1_000 }),
-    ).rejects.toThrow();
-    expect(getDatabaseStatus()).toBe("disconnected");
+    expect(JSON.stringify(res.body)).not.toContain(storage.directory);
   });
 });
