@@ -1,0 +1,55 @@
+[
+  {
+    "orderId": "order_c7c64479faae4c02871a8ae1280a95ef",
+    "returnRisk": 0.18,
+    "riskLevel": "low",
+    "recommendedCourier": "Yalidine",
+    "recommendations": [
+      "Standard delivery"
+    ],
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "analysis_1d744aaa0bf14ecebb322187947e3e34",
+    "createdAt": "2026-11-20T14:33:07.052Z",
+    "updatedAt": "2026-11-20T14:33:07.052Z"
+  },
+  {
+    "orderId": "order_9f75a24536714ce3b59791708fd77623",
+    "returnRisk": 0.72,
+    "riskLevel": "high",
+    "recommendedCourier": "EcoTrack",
+    "recommendations": [
+      "Verify customer phone number",
+      "Confirm delivery address"
+    ],
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "analysis_1ee03e513a714b7483c012283c800f76",
+    "createdAt": "2026-11-20T14:33:07.054Z",
+    "updatedAt": "2026-11-20T14:33:07.054Z"
+  },
+  {
+    "orderId": "order_a2deaf37da3645ebbe446b5e271e7287",
+    "returnRisk": 0.41,
+    "riskLevel": "medium",
+    "recommendedCourier": "Yalidine",
+    "recommendations": [
+      "Call before dispatch"
+    ],
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "analysis_e11b3836ba094fa882944b6f7440ffed",
+    "createdAt": "2026-11-20T14:33:07.057Z",
+    "updatedAt": "2026-11-20T14:33:07.057Z"
+  },
+  {
+    "orderId": "order_ba3de8f793a448f9aa2a322488bf61be",
+    "returnRisk": 0.35,
+    "riskLevel": "medium",
+    "recommendedCourier": null,
+    "recommendations": [
+      "Ask the customer for a size"
+    ],
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "analysis_d06c8627c7354da89eea6891bfb8cb11",
+    "createdAt": "2026-11-20T14:33:07.060Z",
+    "updatedAt": "2026-11-20T14:33:07.060Z"
+  }
+]

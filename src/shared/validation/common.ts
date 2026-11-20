@@ -30,7 +30,7 @@ export const optionalText = (max: number) =>
     .nullable();
 
 /** Channels a customer or order can come from. */
-export const CHANNEL_SOURCES = ["manual", "messenger", "whatsapp", "instagram", "website", "phone"] as const;
+export const CHANNEL_SOURCES = ["manual", "messenger", "whatsapp", "instagram", "website", "phone", "telegram"] as const;
 export type ChannelSource = (typeof CHANNEL_SOURCES)[number];
 export const channelSourceSchema = z.enum(CHANNEL_SOURCES);
 

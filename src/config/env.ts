@@ -63,6 +63,18 @@ const envSchema = z
       .default("8h"),
 
     LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
+
+    // --- AI provider (AIGrid / OpenAI-compatible) ---
+    AI_PROVIDER: z.string().trim().min(1).default("aigrid"),
+    AI_BASE_URL: z.string().trim().url("must be a valid URL").optional(),
+    AI_API_KEY: z.string().trim().min(1).optional(),
+    AI_MODEL: z.string().trim().min(1).default("Qwen/Qwen3.8-27B"),
+
+    // --- Telegram Bot ---
+    TELEGRAM_BOT_TOKEN: z.string().trim().min(1).optional(),
+    TELEGRAM_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
+    TELEGRAM_BOT_USERNAME: z.string().trim().min(1).optional(),
+    TELEGRAM_DEFAULT_STORE_ID: z.string().trim().min(1).optional(),
   })
   .superRefine((value, ctx) => {
     if (value.NODE_ENV !== "production") return;

@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Amine B.",
+    "phone": "0550123456",
+    "wilaya": "Blida",
+    "address": "Blida Centre",
+    "source": "messenger",
+    "platformCustomerId": "DEMO_PSID_1001",
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "customer_405eeb0541fb410686a7f1f05a3c4d1a",
+    "createdAt": "2026-11-20T14:33:06.921Z",
+    "updatedAt": "2026-11-20T14:33:06.921Z"
+  },
+  {
+    "name": "Sara K.",
+    "phone": "0661234567",
+    "wilaya": "Alger",
+    "address": "Bab Ezzouar",
+    "source": "instagram",
+    "platformCustomerId": null,
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "customer_80dacf6be08d496aba96ea0bca07c259",
+    "createdAt": "2026-11-20T14:33:06.923Z",
+    "updatedAt": "2026-11-20T14:33:06.923Z"
+  },
+  {
+    "name": "Yacine M.",
+    "phone": "0770112233",
+    "wilaya": "Oran",
+    "address": "Es Senia",
+    "source": "manual",
+    "platformCustomerId": null,
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "customer_58eadd0e00e942cfac91059b967f18ea",
+    "createdAt": "2026-11-20T14:33:06.927Z",
+    "updatedAt": "2026-11-20T14:33:06.927Z"
+  }
+]

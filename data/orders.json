@@ -1,0 +1,215 @@
+[
+  {
+    "id": "order_c7c64479faae4c02871a8ae1280a95ef",
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "customerId": "customer_405eeb0541fb410686a7f1f05a3c4d1a",
+    "items": [
+      {
+        "productId": "product_cce0b7ea39444afc8895283a4f8c8aea",
+        "productName": "Black Shoes",
+        "size": 42,
+        "color": "Black",
+        "quantity": 2,
+        "unitPrice": 4500,
+        "lineTotal": 9000
+      }
+    ],
+    "totalAmount": 9000,
+    "currency": "DZD",
+    "delivery": {
+      "wilaya": "Blida",
+      "address": "Blida Centre",
+      "phone": "0550123456",
+      "company": "Yalidine",
+      "trackingNumber": null
+    },
+    "status": "returned",
+    "source": "messenger",
+    "notes": null,
+    "statusHistory": [
+      {
+        "status": "pending_confirmation",
+        "at": "2026-11-20T14:33:06.999Z",
+        "note": null
+      },
+      {
+        "status": "confirmed",
+        "at": "2026-11-20T14:33:07.003Z",
+        "note": null
+      },
+      {
+        "status": "pending_dispatch",
+        "at": "2026-11-20T14:33:07.006Z",
+        "note": null
+      },
+      {
+        "status": "shipped",
+        "at": "2026-11-20T14:33:07.015Z",
+        "note": null
+      },
+      {
+        "status": "delivered",
+        "at": "2026-11-20T14:33:07.019Z",
+        "note": null
+      },
+      {
+        "status": "returned",
+        "at": "2026-11-20T18:39:42.605Z",
+        "note": null
+      }
+    ],
+    "createdAt": "2026-11-20T14:33:06.999Z",
+    "updatedAt": "2026-11-20T18:39:42.605Z"
+  },
+  {
+    "id": "order_9f75a24536714ce3b59791708fd77623",
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "customerId": "customer_80dacf6be08d496aba96ea0bca07c259",
+    "items": [
+      {
+        "productId": "product_db236b8675ff466685d2e672252331e3",
+        "productName": "Leather Boots",
+        "size": 41,
+        "color": "Brown",
+        "quantity": 1,
+        "unitPrice": 7900,
+        "lineTotal": 7900
+      }
+    ],
+    "totalAmount": 7900,
+    "currency": "DZD",
+    "delivery": {
+      "wilaya": "Alger",
+      "address": "Bab Ezzouar",
+      "phone": "0661234567",
+      "company": "EcoTrack",
+      "trackingNumber": null
+    },
+    "status": "refused",
+    "source": "instagram",
+    "notes": null,
+    "statusHistory": [
+      {
+        "status": "pending_confirmation",
+        "at": "2026-11-20T14:33:07.021Z",
+        "note": null
+      },
+      {
+        "status": "confirmed",
+        "at": "2026-11-20T14:33:07.025Z",
+        "note": null
+      },
+      {
+        "status": "pending_dispatch",
+        "at": "2026-11-20T14:33:07.029Z",
+        "note": null
+      },
+      {
+        "status": "shipped",
+        "at": "2026-11-20T14:33:07.035Z",
+        "note": null
+      },
+      {
+        "status": "refused",
+        "at": "2026-11-20T14:33:07.038Z",
+        "note": null
+      }
+    ],
+    "createdAt": "2026-11-20T14:33:07.021Z",
+    "updatedAt": "2026-11-20T14:33:07.038Z"
+  },
+  {
+    "id": "order_a2deaf37da3645ebbe446b5e271e7287",
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "customerId": "customer_58eadd0e00e942cfac91059b967f18ea",
+    "items": [
+      {
+        "productId": "product_963fc66a69c741b88c4ca2f035c4cc4d",
+        "productName": "Cotton T-Shirt",
+        "size": "L",
+        "color": "Navy",
+        "quantity": 3,
+        "unitPrice": 1800,
+        "lineTotal": 5400
+      }
+    ],
+    "totalAmount": 5400,
+    "currency": "DZD",
+    "delivery": {
+      "wilaya": "Oran",
+      "address": "Es Senia",
+      "phone": "0770112233",
+      "company": null,
+      "trackingNumber": null
+    },
+    "status": "cancelled",
+    "source": "manual",
+    "notes": null,
+    "statusHistory": [
+      {
+        "status": "pending_confirmation",
+        "at": "2026-11-20T14:33:07.041Z",
+        "note": null
+      },
+      {
+        "status": "confirmed",
+        "at": "2026-11-20T14:33:07.044Z",
+        "note": null
+      },
+      {
+        "status": "cancelled",
+        "at": "2026-11-20T18:39:32.975Z",
+        "note": null
+      }
+    ],
+    "createdAt": "2026-11-20T14:33:07.041Z",
+    "updatedAt": "2026-11-20T18:39:32.975Z"
+  },
+  {
+    "id": "order_ba3de8f793a448f9aa2a322488bf61be",
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "customerId": "customer_405eeb0541fb410686a7f1f05a3c4d1a",
+    "items": [
+      {
+        "productId": "product_db236b8675ff466685d2e672252331e3",
+        "productName": "Leather Boots",
+        "size": null,
+        "color": null,
+        "quantity": 1,
+        "unitPrice": 7900,
+        "lineTotal": 7900
+      }
+    ],
+    "totalAmount": 7900,
+    "currency": "DZD",
+    "delivery": {
+      "wilaya": "Blida",
+      "address": "Blida Centre",
+      "phone": "0550123456",
+      "company": "Yalidine",
+      "trackingNumber": null
+    },
+    "status": "cancelled",
+    "source": "messenger",
+    "notes": null,
+    "statusHistory": [
+      {
+        "status": "pending_confirmation",
+        "at": "2026-11-20T14:33:07.047Z",
+        "note": null
+      },
+      {
+        "status": "draft",
+        "at": "2026-11-20T16:15:38.884Z",
+        "note": null
+      },
+      {
+        "status": "cancelled",
+        "at": "2026-11-20T16:15:41.805Z",
+        "note": null
+      }
+    ],
+    "createdAt": "2026-11-20T14:33:07.048Z",
+    "updatedAt": "2026-11-20T16:15:41.805Z"
+  }
+]

@@ -1,0 +1,61 @@
+[
+  {
+    "name": "Black Shoes",
+    "description": "Black casual shoes",
+    "price": 4500,
+    "stock": 20,
+    "sizes": [
+      40,
+      41,
+      42,
+      43
+    ],
+    "colors": [
+      "Black",
+      "White"
+    ],
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "product_cce0b7ea39444afc8895283a4f8c8aea",
+    "createdAt": "2026-11-20T14:33:06.909Z",
+    "updatedAt": "2026-11-20T14:33:06.909Z"
+  },
+  {
+    "name": "Leather Boots",
+    "description": "Winter leather boots",
+    "price": 7900,
+    "stock": 6,
+    "sizes": [
+      41,
+      42,
+      43,
+      44
+    ],
+    "colors": [
+      "Brown"
+    ],
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "product_db236b8675ff466685d2e672252331e3",
+    "createdAt": "2026-11-20T14:33:06.912Z",
+    "updatedAt": "2026-11-20T14:33:06.912Z"
+  },
+  {
+    "name": "Cotton T-Shirt",
+    "description": null,
+    "price": 1800,
+    "stock": 40,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "colors": [
+      "White",
+      "Navy"
+    ],
+    "storeId": "store_48cd0f5f8ba34064b017528f09cb09fd",
+    "id": "product_963fc66a69c741b88c4ca2f035c4cc4d",
+    "createdAt": "2026-11-20T14:33:06.916Z",
+    "updatedAt": "2026-11-20T14:33:06.916Z"
+  }
+]

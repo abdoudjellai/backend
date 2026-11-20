@@ -4,8 +4,8 @@ coverage/
 
 # Runtime data: the JSON storage files contain business/customer data and are never committed.
 # The empty folder is kept via data/.gitkeep; run `npm run seed` for demo data.
-data/*
-!data/.gitkeep
+
+
 
 # Environment — never commit real secrets
 .env
