@@ -32,10 +32,15 @@ const FALLBACK_REPLY =
 const MODEL_SETTINGS = { temperature: 0.2, maxTokens: 2048, maxRounds: 5, maxToolCallsPerRound: 5, maxToolCalls: 10 } as const;
 
 /**
- * The assistant analyzes the owner's first store (oldest), matching the dashboard AI chat.
- * The store is always derived from the authenticated owner.
+ * The store to analyze. `storeId` (the dashboard's selected store) must belong to the owner —
+ * any other ID is a 404, exactly like an unknown one. Without it, the owner's oldest store is used.
  */
-export function storeForOwner(ownerId: string): Store {
+export function storeForOwner(ownerId: string, storeId?: string): Store {
+  if (storeId !== undefined) {
+    const store = storage.stores.findOne((s) => s.id === storeId && s.ownerId === ownerId);
+    if (store === undefined) throw AppError.notFound("Store not found");
+    return store;
+  }
   const store = storage.stores
     .findAll((s) => s.ownerId === ownerId)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
@@ -65,9 +70,10 @@ function findOwnedConversation(ownerId: string, conversationId: string): OwnerCo
   return conversation;
 }
 
-export function listConversations(ownerId: string): OwnerConversationView[] {
+/** The owner's conversations, optionally only those about one store. */
+export function listConversations(ownerId: string, storeId?: string): OwnerConversationView[] {
   return storage.ownerConversations
-    .findAll((c) => c.ownerId === ownerId)
+    .findAll((c) => c.ownerId === ownerId && (storeId === undefined || c.storeId === storeId))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .map((c) => toConversationView(c, storage.ownerMessages.count((m) => m.conversationId === c.id)));
 }
@@ -150,18 +156,25 @@ export async function chat(
   conversationId: string | undefined,
   message: string,
   now: Date = new Date(),
+  storeId?: string,
 ): Promise<ChatResult> {
   if (!isAiConfigured()) {
     throw AppError.businessRule("AI provider is not configured. Set AI_BASE_URL and AI_API_KEY.");
   }
 
-  const store = storeForOwner(auth.ownerId);
   let existing: OwnerConversation | null = null;
+  let store: Store;
   if (conversationId !== undefined) {
+    // A conversation stays about the store it started with; it must still belong to the owner.
     existing = findOwnedConversation(auth.ownerId, conversationId);
-    if (existing.storeId !== store.id) {
-      throw AppError.notFound("Conversation not found");
+    if (storeId !== undefined && storeId !== existing.storeId) {
+      throw AppError.badRequest("This conversation is about another store. Start a new conversation.");
     }
+    const conversationStore = storage.stores.findOne((s) => s.id === existing!.storeId && s.ownerId === auth.ownerId);
+    if (conversationStore === undefined) throw AppError.notFound("Conversation not found");
+    store = conversationStore;
+  } else {
+    store = storeForOwner(auth.ownerId, storeId);
   }
 
   const history = existing === null ? [] : messagesOf(existing.id);

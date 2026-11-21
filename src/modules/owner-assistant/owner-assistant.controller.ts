@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { sendSuccess } from "../../shared/utils/http-response.js";
 import { getAuth } from "../../shared/utils/request-context.js";
-import { chatBody, conversationParams } from "./owner-assistant.validation.js";
+import { chatBody, conversationParams, listConversationsQuery } from "./owner-assistant.validation.js";
 import { chat, listConversations, getConversation, deleteConversation } from "./owner-assistant.service.js";
 
 /**
@@ -10,7 +10,7 @@ import { chat, listConversations, getConversation, deleteConversation } from "./
  */
 export const postChat: RequestHandler = async (req, res) => {
   const body = chatBody.parse(req.body);
-  const result = await chat(getAuth(req), body.conversationId, body.message);
+  const result = await chat(getAuth(req), body.conversationId, body.message, new Date(), body.storeId);
   sendSuccess(
     req,
     res,
@@ -19,9 +19,10 @@ export const postChat: RequestHandler = async (req, res) => {
   );
 };
 
-/** GET /api/v1/owner-assistant/conversations — newest activity first. */
+/** GET /api/v1/owner-assistant/conversations?storeId= — newest activity first. */
 export const getConversations: RequestHandler = (req, res) => {
-  sendSuccess(req, res, { conversations: listConversations(getAuth(req).ownerId) });
+  const { storeId } = listConversationsQuery.parse(req.query);
+  sendSuccess(req, res, { conversations: listConversations(getAuth(req).ownerId, storeId) });
 };
 
 /** GET /api/v1/owner-assistant/conversations/:conversationId — messages oldest first. */

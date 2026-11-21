@@ -196,8 +196,8 @@ All endpoints except `/health` and `/auth/login` require a Bearer token. Lists a
 | GET | `/api/v1/stores/:storeId/analytics/overview` | `{ business, ai }` |
 | GET | `/api/v1/stores/:storeId/analytics/orders` | Optional `from`, `to` |
 | GET | `/api/v1/stores/:storeId/analytics/ai` | |
-| POST | `/api/v1/owner-assistant/chat` | `{ conversationId?, message }` — see [Owner AI assistant](#owner-ai-assistant) |
-| GET | `/api/v1/owner-assistant/conversations` | The owner's assistant conversations, latest activity first |
+| POST | `/api/v1/owner-assistant/chat` | `{ conversationId?, storeId?, message }` — see [Owner AI assistant](#owner-ai-assistant) |
+| GET | `/api/v1/owner-assistant/conversations` | The owner's assistant conversations, latest activity first. Optional `storeId` |
 | GET / DELETE | `/api/v1/owner-assistant/conversations/:conversationId` | Conversation + messages (oldest first) / delete |
 
 Date filters accept `2026-11-20` (whole day, UTC) or a full ISO-8601 datetime.
@@ -242,8 +242,10 @@ configured / no store / conversation limit (200 messages) / a reply already in p
 `429` more than 20 chat requests per minute per owner, `502 AI_PROVIDER_ERROR` when the model fails. A failed
 request persists nothing.
 
-**Identity.** Owner and store always come from the JWT; `ownerId`/`storeId`/`businessId` in the body are ignored.
-The assistant analyzes the owner's first (oldest) store, like `/ai/chat`.
+**Identity.** The owner always comes from the JWT; `ownerId`/`businessId` in the body are ignored. An optional
+`storeId` selects which of the owner's stores to analyze (another owner's store → `404`); without it the oldest
+store is used. A conversation stays on the store it started with (a different `storeId` → `400`).
+`GET /conversations?storeId=…` lists only that store's conversations.
 
 **Tools** (`owner-assistant.tools.ts`). Each tool has one Zod schema used both to validate arguments and to
 generate the JSON schema sent to the model; results are computed in code (`owner-assistant.metrics.ts`) and
@@ -283,7 +285,7 @@ messages record the tool names and arguments used.
 customer conversations, which stay in process memory.
 
 **Known limits.** Delivery companies are free text entered on orders (no courier entity, costs or service levels).
-Revenue is attributed to the order creation date, not the delivery date. Only the owner's first store is analyzed.
+Revenue is attributed to the order creation date, not the delivery date. One store per conversation.
 
 ### Example: create an order
 

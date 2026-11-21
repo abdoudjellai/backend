@@ -15,13 +15,17 @@ export const RECENT_TOOL_CALLS_IN_PROMPT = 6;
 export const CHAT_RATE_LIMIT = { windowMs: 60 * 1000, limit: 20 } as const;
 
 /**
- * Chat request body. Unknown keys (e.g. ownerId, storeId, businessId) are stripped: identity and
- * store always come from the authenticated session.
+ * Chat request body. Unknown keys (e.g. ownerId, businessId) are stripped: the owner always comes
+ * from the authenticated session. `storeId` only selects among the owner's own stores and is
+ * verified against ownership by the service (404 otherwise).
  */
 export const chatBody = z.object({
   conversationId: idSchema.optional(),
+  storeId: idSchema.optional(),
   message: z.string().trim().min(1, "message is required").max(MAX_MESSAGE_LENGTH),
 });
 export type ChatBody = z.infer<typeof chatBody>;
 
 export const conversationParams = idParams("conversationId");
+
+export const listConversationsQuery = z.object({ storeId: idSchema.optional() });

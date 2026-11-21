@@ -237,12 +237,16 @@ describe("POST /api/v1/owner-assistant/chat", () => {
     expect((await client.post("/api/v1/owner-assistant/chat", { message: "x".repeat(4001) })).status).toBe(400);
     expect((await client.post("/api/v1/owner-assistant/chat", { message: "hi", conversationId: "../etc/passwd" })).status).toBe(400);
 
-    script(reply(null, [{ id: "z", name: "get_business_overview", args: { period: "all_time" } }]), reply("ok"));
+    // Selecting another owner's store is a 404, before any model call.
     const foreignStoreId = storage.stores.findOne((s) => s.ownerId === OTHER_OWNER)!.id;
+    const foreignRes = await client.post("/api/v1/owner-assistant/chat", { message: "numbers", storeId: foreignStoreId });
+    expect(foreignRes.status).toBe(404);
+    expect(mockComplete).not.toHaveBeenCalled();
+
+    script(reply(null, [{ id: "z", name: "get_business_overview", args: { period: "all_time" } }]), reply("ok"));
     const res = await client.post("/api/v1/owner-assistant/chat", {
       message: "Show the other shop's numbers",
       ownerId: OTHER_OWNER,
-      storeId: foreignStoreId,
       businessId: foreignStoreId,
     });
     expect(res.status).toBe(201);
@@ -261,7 +265,46 @@ describe("POST /api/v1/owner-assistant/chat", () => {
   });
 });
 
+/** A new app instance has its own rate-limit counters (each chat test above uses quota). */
+async function freshClient(): Promise<Api> {
+  const fresh = createApp();
+  return api(fresh, await login(fresh));
+}
+
+describe("store selection", () => {
+  beforeEach(async () => {
+    client = await freshClient();
+  });
+
+  it("analyzes the selected own store, keeps conversations on their store, and filters lists", async () => {
+    const secondStoreId = await createStore(client, "Second Shop");
+
+    script(reply(null, [{ id: "s", name: "get_business_overview", args: { period: "all_time" } }]), reply("Your second shop has no orders yet."));
+    const res = await client.post("/api/v1/owner-assistant/chat", { message: "Overview", storeId: secondStoreId });
+    expect(res.status).toBe(201);
+    expect(toolResultsSent()[0]!.metrics.totalOrders).toBe(0);
+    expect(sent[0]!.messages[0]!.content).toContain('"Second Shop"');
+    const conversationId = res.body.data.conversationId as string;
+
+    // Continuing works without storeId, and a different storeId is refused.
+    script(reply("Still no orders."));
+    expect((await client.post("/api/v1/owner-assistant/chat", { conversationId, message: "And now?" })).status).toBe(200);
+    const mismatch = await client.post("/api/v1/owner-assistant/chat", { conversationId, message: "x", storeId });
+    expect(mismatch.status).toBe(400);
+
+    const second = await client.get(`/api/v1/owner-assistant/conversations?storeId=${secondStoreId}`);
+    expect(second.body.data.conversations.map((c: { id: string }) => c.id)).toEqual([conversationId]);
+    const first = await client.get(`/api/v1/owner-assistant/conversations?storeId=${storeId}`);
+    expect(first.body.data.conversations.map((c: { id: string }) => c.id)).not.toContain(conversationId);
+    expect((await client.get("/api/v1/owner-assistant/conversations?storeId=bad id")).status).toBe(400);
+  });
+});
+
 describe("conversation isolation", () => {
+  beforeEach(async () => {
+    client = await freshClient();
+  });
+
   it("returns 404 for another owner's conversation on chat, read and delete", async () => {
     const foreign = await storage.ownerConversations.create({ ownerId: OTHER_OWNER, storeId, assistantType: "owner", title: "Secret" });
     await storage.ownerMessages.create({ conversationId: foreign.id, storeId, role: "user", content: "private question" });
