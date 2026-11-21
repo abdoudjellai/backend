@@ -196,6 +196,9 @@ All endpoints except `/health` and `/auth/login` require a Bearer token. Lists a
 | GET | `/api/v1/stores/:storeId/analytics/overview` | `{ business, ai }` |
 | GET | `/api/v1/stores/:storeId/analytics/orders` | Optional `from`, `to` |
 | GET | `/api/v1/stores/:storeId/analytics/ai` | |
+| POST | `/api/v1/owner-assistant/chat` | `{ conversationId?, storeId?, message }` — see [Owner AI assistant](#owner-ai-assistant) |
+| GET | `/api/v1/owner-assistant/conversations` | The owner's assistant conversations, latest activity first. Optional `storeId` |
+| GET / DELETE | `/api/v1/owner-assistant/conversations/:conversationId` | Conversation + messages (oldest first) / delete |
 
 Date filters accept `2026-11-20` (whole day, UTC) or a full ISO-8601 datetime.
 
@@ -210,6 +213,79 @@ Date filters accept `2026-11-20` (whole day, UTC) or a full ISO-8601 datetime.
 
 Predicted risk and actual return rate are separate metrics. When there is no data, counts are `0` and averages/rates
 are `null` — nothing is estimated.
+
+### Owner AI assistant
+
+A read-only business advisor for the dashboard (`src/modules/owner-assistant/`). It reuses the shared AI stack
+(`ai.service.ts` → AIGrid provider, `agent-loop.ts`) with its own system prompt, conversation storage and tool
+registry. It cannot call the customer agent's tools (e.g. `create_order`), and no owner tool writes data.
+
+**Chat.** `POST /api/v1/owner-assistant/chat` with `{ "message": "...", "conversationId"?: "conversation_…" }`.
+Without `conversationId` a conversation is created (`201`); otherwise it is continued (`200`).
+
+```json
+{
+  "success": true,
+  "data": {
+    "conversationId": "conversation_…",
+    "createdConversation": true,
+    "message": { "id": "message_…", "role": "assistant", "content": "This month you received 5 orders…",
+                 "createdAt": "2026-11-21T10:00:00.000Z", "toolsUsed": ["get_orders_summary"] },
+    "toolsUsed": ["get_orders_summary"]
+  },
+  "requestId": "…"
+}
+```
+
+Errors: `400` invalid body (message 1–4000 chars), `404` unknown or other owner's conversation, `409` AI not
+configured / no store / conversation limit (200 messages) / a reply already in progress for that conversation,
+`429` more than 20 chat requests per minute per owner, `502 AI_PROVIDER_ERROR` when the model fails. A failed
+request persists nothing.
+
+**Identity.** The owner always comes from the JWT; `ownerId`/`businessId` in the body are ignored. An optional
+`storeId` selects which of the owner's stores to analyze (another owner's store → `404`); without it the oldest
+store is used. A conversation stays on the store it started with (a different `storeId` → `400`).
+`GET /conversations?storeId=…` lists only that store's conversations.
+
+**Tools** (`owner-assistant.tools.ts`). Each tool has one Zod schema used both to validate arguments and to
+generate the JSON schema sent to the model; results are computed in code (`owner-assistant.metrics.ts`) and
+scoped to the store. Customers are exposed by name and wilaya only.
+
+| Tool | Default period | Returns |
+| ---- | -------------- | ------- |
+| `get_business_overview` | this month | Metrics below + current workload, customer/product totals |
+| `get_revenue_summary` | this month | Delivered revenue, pipeline, value lost to returns/cancellations, daily or monthly breakdown |
+| `get_orders_summary` | this month | Counts by status and channel, confirmation/cancellation/return rates |
+| `get_recent_orders` | all time | Newest orders (limit 1–20), optional status filter |
+| `get_order_details` | — | One order with status history (notes) and latest predicted risk |
+| `get_customer_insights` | all time | Repeat customers, top customers, highest return rates, wilayas |
+| `get_top_products` | all time | Units ordered/delivered, revenue, return rate, current price/stock |
+| `get_return_analysis` | all time | Return rate by wilaya/product/channel/courier, recorded reasons, prediction vs outcome |
+| `get_delivery_performance` | all time | Per-courier success/return rate and shipped→delivered days, or `available: false` |
+| `compare_business_periods` | this month vs previous | Both periods, changes, and a same-elapsed-days comparison for running periods |
+
+Periods are presets (`today`, `yesterday`, `this_week`, `last_week`, `last_7_days`, `last_30_days`, `this_month`,
+`last_month`, `this_year`, `last_year`, `all_time`) or inclusive `start`/`end` dates, resolved in Africa/Algiers
+time (UTC+1); weeks start on Sunday. Definitions: **confirmed** = reached `confirmed` at some point;
+**confirmation rate** = confirmed / orders no longer in `draft`/`pending_confirmation`; **return rate** =
+(refused + returned) / (delivered + refused + returned); **delivered revenue** = orders currently `delivered`,
+counted by creation date. Rates are percentages (`…Pct`) or `null` when there is nothing to measure.
+
+**Tool loop safeguards** (`agent-loop.ts`, shared with the Telegram agent): only registered tools run; ≤ 5 calls
+per round and ≤ 10 per message for the owner agent; executor errors become error results for the model; the last
+round is tool-free so there is always an answer; `<think>` reasoning is stripped. For the owner agent, a reply that
+contains figures when no tool succeeded is sent back once to retrieve data first.
+
+**Context.** The last 20 messages (≤ 16,000 characters) are sent with each request, and recent tool calls with their
+arguments are listed in the system prompt so follow-ups keep the same period. Tool results are not stored; assistant
+messages record the tool names and arguments used.
+
+**Storage.** `owner-conversations.json` (`ownerId`, `storeId`, `assistantType: "owner"`, `title`) and
+`owner-messages.json` (`conversationId`, `storeId`, `role`, `content`, `toolCalls?`). Separate from Telegram
+customer conversations, which stay in process memory.
+
+**Known limits.** Delivery companies are free text entered on orders (no courier entity, costs or service levels).
+Revenue is attributed to the order creation date, not the delivery date. One store per conversation.
 
 ### Example: create an order
 
@@ -242,7 +318,7 @@ Authorization: Bearer …
 - **Envelopes:** `{ success: true, data, requestId }` / `{ success: false, error: { code, message, details? }, requestId }`.
   Codes: `src/shared/constants/error-codes.ts`. Unexpected errors return a generic `500 INTERNAL_ERROR`.
 - **Status codes:** 400 validation, 401 auth, 404 not found / not owned, 409 conflict / business rule / stock /
-  transition, 422 invalid reference, 429 rate limited, 503 storage unavailable.
+  transition, 422 invalid reference, 429 rate limited, 502 AI provider error, 503 storage unavailable.
 - **Request IDs:** `X-Request-Id` on every response and log line; a safe caller-supplied ID is reused.
 - **Logging:** method, path (no query string), status and timing only — never headers or bodies, so tokens,
   passwords and customer details are not logged.

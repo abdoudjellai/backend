@@ -173,6 +173,20 @@ export class JsonCollection<T extends BaseRecord> {
     });
   }
 
+  /** Delete every record matching the predicate. Returns how many were removed. */
+  async deleteWhere(predicate: (record: Readonly<T>) => boolean): Promise<number> {
+    return this.write((records) => {
+      let removed = 0;
+      for (let i = records.length - 1; i >= 0; i--) {
+        if (predicate(records[i]!)) {
+          records.splice(i, 1);
+          removed += 1;
+        }
+      }
+      return removed;
+    });
+  }
+
   private generateId(): string {
     return `${this.idPrefix}_${randomUUID().replaceAll("-", "")}`;
   }

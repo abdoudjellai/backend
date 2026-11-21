@@ -88,6 +88,20 @@ export async function getMe(): Promise<{ id: number; first_name: string; usernam
   return (await telegramRequest("getMe", {})) as { id: number; first_name: string; username?: string };
 }
 
+/** Register a webhook URL with Telegram. */
+export async function setWebhook(url: string, secretToken?: string): Promise<boolean> {
+  const body: Record<string, unknown> = { url };
+  if (secretToken) body.secret_token = secretToken;
+  body.allowed_updates = ["message"];
+  await telegramRequest("setWebhook", body);
+  return true;
+}
+
+/** Get current webhook info from Telegram. */
+export async function getWebhookInfo(): Promise<{ url: string; has_custom_certificate: boolean; pending_update_count: number }> {
+  return (await telegramRequest("getWebhookInfo", {})) as { url: string; has_custom_certificate: boolean; pending_update_count: number };
+}
+
 function splitMessage(text: string, maxLength: number): string[] {
   if (text.length <= maxLength) return [text];
 

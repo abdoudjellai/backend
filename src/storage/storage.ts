@@ -2,6 +2,7 @@ import { join, resolve } from "node:path";
 import type { AiAnalysis } from "../modules/ai-analytics/ai-analysis.model.js";
 import type { Customer } from "../modules/customers/customer.model.js";
 import type { Order } from "../modules/orders/order.model.js";
+import type { OwnerConversation, OwnerMessage } from "../modules/owner-assistant/owner-assistant.model.js";
 import type { Product } from "../modules/products/product.model.js";
 import type { Store } from "../modules/stores/store.model.js";
 import { JsonCollection } from "./json-collection.js";
@@ -17,6 +18,8 @@ export class Storage {
   readonly products: JsonCollection<Product>;
   readonly orders: JsonCollection<Order>;
   readonly aiAnalytics: JsonCollection<AiAnalysis>;
+  readonly ownerConversations: JsonCollection<OwnerConversation>;
+  readonly ownerMessages: JsonCollection<OwnerMessage>;
   private opened = false;
 
   constructor(directory: string) {
@@ -27,10 +30,20 @@ export class Storage {
     this.products = new JsonCollection<Product>("products", file("products"), "product");
     this.orders = new JsonCollection<Order>("orders", file("orders"), "order");
     this.aiAnalytics = new JsonCollection<AiAnalysis>("ai-analytics", file("ai-analytics"), "analysis");
+    this.ownerConversations = new JsonCollection<OwnerConversation>("owner-conversations", file("owner-conversations"), "conversation");
+    this.ownerMessages = new JsonCollection<OwnerMessage>("owner-messages", file("owner-messages"), "message");
   }
 
   private all() {
-    return [this.stores, this.customers, this.products, this.orders, this.aiAnalytics];
+    return [
+      this.stores,
+      this.customers,
+      this.products,
+      this.orders,
+      this.aiAnalytics,
+      this.ownerConversations,
+      this.ownerMessages,
+    ];
   }
 
   /** Load every collection, creating missing files as empty arrays. */
