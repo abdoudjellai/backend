@@ -17,6 +17,8 @@ export const ErrorCodes = {
   UNSUPPORTED_MEDIA_TYPE: "UNSUPPORTED_MEDIA_TYPE",
   RATE_LIMITED: "RATE_LIMITED",
   SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
+  /** The upstream AI provider failed, timed out or returned an unusable response. */
+  AI_PROVIDER_ERROR: "AI_PROVIDER_ERROR",
   INTERNAL_ERROR: "INTERNAL_ERROR",
 } as const;
 

@@ -49,7 +49,14 @@ agent (`src/modules/ai/`), AI order analysis, and a Telegram webhook. Trust the 
 - Dashboard AI chat (`POST /api/v1/ai/chat`) reuses the Telegram agent path with user key `dashboard`,
   so orders created there are stored with `source: "telegram"` and `platformCustomerId: "dashboard"`.
   It always uses the owner's **first** store.
-- Conversation memory is process-local (keyed `storeId:userId`, 30-min TTL) and lost on restart;
+- Owner AI assistant (`src/modules/owner-assistant/`, `/api/v1/owner-assistant`) is read-only and
+  documented in the README. Its tool JSON schemas are generated from the Zod schemas in
+  `owner-assistant.tools.ts` — change the Zod schema, never hand-write parameters. All date maths
+  goes through `owner-assistant.periods.ts` (fixed UTC+1, Africa/Algiers). Its conversations are
+  persisted (`ownerConversations`/`ownerMessages`); a failed AI call persists nothing.
+- `agent-loop.ts` is shared by the Telegram/dashboard customer agent and the owner assistant; run
+  the whole suite after changing it.
+- Customer-agent conversation memory is process-local (keyed `storeId:userId`, 30-min TTL) and lost on restart;
   `startCleanup()` is currently never called, so inactive sessions are only swept lazily on access.
 
 ## Testing
@@ -66,8 +73,10 @@ agent (`src/modules/ai/`), AI order analysis, and a Telegram webhook. Trust the 
 
 - `data/*.json` are **tracked in git** (despite the README saying they are ignored). Running the app or
   `npm run seed` can dirty them; do not commit runtime data changes.
-- `opencode.json` is untracked and currently contains a literal provider API key in `options.apiKey`. Do not
-  commit it; treat the key as leaked if it is ever pushed.
+- `opencode.json` contains a literal provider API key in `options.apiKey`. It is now in `.gitignore`;
+  never force-add it, and treat the key as leaked if it is ever pushed.
+- Tests that need the AI use `vi.mock("…/ai/ai.service.js")` (see `tests/integration/owner-assistant-chat.test.ts`)
+  to make `isAiConfigured()` true and script `aiComplete`.
 - Startup fails fast on invalid env or malformed storage JSON, listing variable/file names (never
   values). `ADMIN_PASSWORD`/`JWT_ACCESS_SECRET` placeholders are rejected only when
   `NODE_ENV=production`.

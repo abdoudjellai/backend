@@ -49,12 +49,12 @@ describe("conversation management (via service)", () => {
     await storage.ownerMessages.create({ conversationId: created.id, storeId, role: "user", content: "hello" });
 
     expect(listConversations(auth.ownerId).map((c) => c.id)).toContain(created.id);
-    const fetched = await getConversation(auth.ownerId, created.id);
+    const fetched = getConversation(auth.ownerId, created.id);
     expect(fetched.conversation.title).toBe("Test conversation");
     expect(fetched.messages).toHaveLength(1);
 
     // Another owner cannot read or delete it (404, not 403).
-    await expect(getConversation("owner_other", created.id)).rejects.toThrow(/not found/i);
+    expect(() => getConversation("owner_other", created.id)).toThrow(/not found/i);
     await expect(deleteConversation("owner_other", created.id)).rejects.toThrow(/not found/i);
     expect(listConversations("owner_other")).toHaveLength(0);
 

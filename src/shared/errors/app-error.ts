@@ -42,4 +42,9 @@ export class AppError extends Error {
   static serviceUnavailable(message = "Service unavailable", details?: unknown): AppError {
     return new AppError(503, ErrorCodes.SERVICE_UNAVAILABLE, message, details);
   }
+
+  /** The AI provider failed. The message is client-safe; provider details are logged, not returned. */
+  static aiProviderError(message = "The AI assistant is temporarily unavailable. Please try again."): AppError {
+    return new AppError(502, ErrorCodes.AI_PROVIDER_ERROR, message);
+  }
 }

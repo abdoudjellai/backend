@@ -6,37 +6,33 @@ import { chat, listConversations, getConversation, deleteConversation } from "./
 
 /**
  * POST /api/v1/owner-assistant/chat
- * Body: { conversationId?: string, message: string }
+ * Body: { conversationId?: string, message: string }. 201 when a conversation was created.
  */
 export const postChat: RequestHandler = async (req, res) => {
   const body = chatBody.parse(req.body);
-  const auth = getAuth(req);
-  const result = await chat(auth, body.conversationId, body.message);
-  sendSuccess(req, res, {
-    conversationId: result.conversationId,
-    message: result.message,
-    toolsUsed: result.toolsUsed,
-  });
+  const result = await chat(getAuth(req), body.conversationId, body.message);
+  sendSuccess(
+    req,
+    res,
+    { conversationId: result.conversationId, createdConversation: result.createdConversation, message: result.message, toolsUsed: result.toolsUsed },
+    result.createdConversation ? 201 : 200,
+  );
 };
 
-/** GET /api/v1/owner-assistant/conversations */
+/** GET /api/v1/owner-assistant/conversations — newest activity first. */
 export const getConversations: RequestHandler = (req, res) => {
-  const auth = getAuth(req);
-  sendSuccess(req, res, { conversations: listConversations(auth.ownerId) });
+  sendSuccess(req, res, { conversations: listConversations(getAuth(req).ownerId) });
 };
 
-/** GET /api/v1/owner-assistant/conversations/:conversationId */
-export const getConversationHandler: RequestHandler = async (req, res) => {
+/** GET /api/v1/owner-assistant/conversations/:conversationId — messages oldest first. */
+export const getConversationHandler: RequestHandler = (req, res) => {
   const { conversationId } = conversationParams.parse(req.params);
-  const auth = getAuth(req);
-  const result = await getConversation(auth.ownerId, conversationId);
-  sendSuccess(req, res, { conversation: result.conversation, messages: result.messages });
+  sendSuccess(req, res, getConversation(getAuth(req).ownerId, conversationId));
 };
 
 /** DELETE /api/v1/owner-assistant/conversations/:conversationId */
 export const deleteConversationHandler: RequestHandler = async (req, res) => {
   const { conversationId } = conversationParams.parse(req.params);
-  const auth = getAuth(req);
-  await deleteConversation(auth.ownerId, conversationId);
+  await deleteConversation(getAuth(req).ownerId, conversationId);
   sendSuccess(req, res, { deleted: true });
 };
