@@ -51,8 +51,22 @@ export function extractMessageInfo(update: TelegramUpdate): {
   text: string;
 } | null {
   const msg = update.message;
-  if (!msg?.text || !msg.from || msg.from.is_bot) return null;
+  if (!msg?.from || msg.from.is_bot) return null;
   if (msg.chat.type !== "private") return null;
+
+  if (msg.contact) {
+    const name = [msg.contact.first_name, msg.contact.last_name].filter(Boolean).join(" ");
+    return {
+      chatId: msg.chat.id,
+      telegramUserId: String(msg.from.id),
+      username: msg.from.username ?? null,
+      firstName: msg.from.first_name,
+      messageId: msg.message_id,
+      text: `My phone number is ${msg.contact.phone_number}${name ? ` and my name is ${name}` : ""}`,
+    };
+  }
+
+  if (!msg.text) return null;
 
   return {
     chatId: msg.chat.id,

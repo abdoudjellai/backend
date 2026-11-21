@@ -176,13 +176,15 @@ describe("Storage", () => {
     const storage = new Storage(dir);
     expect(await storage.isHealthy()).toBe(false);
     await storage.open();
-    expect((await readdir(dir)).sort()).toEqual([
-      "ai-analytics.json",
-      "customers.json",
-      "orders.json",
-      "products.json",
-      "stores.json",
-    ]);
+      expect((await readdir(dir)).sort()).toEqual([
+        "ai-analytics.json",
+        "customers.json",
+        "orders.json",
+        "owner-conversations.json",
+        "owner-messages.json",
+        "products.json",
+        "stores.json",
+      ]);
     for (const name of await readdir(dir)) {
       expect(JSON.parse(await readFile(join(dir, name), "utf8"))).toEqual([]);
     }

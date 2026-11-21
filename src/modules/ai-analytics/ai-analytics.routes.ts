@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getAiAnalyses, getAiAnalysesForOrder, postAiAnalysis } from "./ai-analytics.controller.js";
+import { analyzeOrder } from "./ai-analyze.controller.js";
 
 /** Mounted at /api/v1/stores/:storeId after authentication and store-ownership checks. */
 export const aiAnalyticsRouter = Router();
@@ -7,3 +8,4 @@ export const aiAnalyticsRouter = Router();
 aiAnalyticsRouter.post("/ai-analytics", postAiAnalysis);
 aiAnalyticsRouter.get("/ai-analytics", getAiAnalyses);
 aiAnalyticsRouter.get("/orders/:orderId/ai-analytics", getAiAnalysesForOrder);
+aiAnalyticsRouter.post("/orders/:orderId/analyze", analyzeOrder);

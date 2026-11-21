@@ -1,11 +1,11 @@
 import { logger } from "../../config/logger.js";
-import type { AiMessage, AiToolDef } from "./providers/aigrid.provider.js";
-import { aiComplete } from "./ai.service.js";
+import type { AiToolDef } from "./providers/aigrid.provider.js";
 import { buildCustomerSupportPrompt } from "./prompts/customer-support.prompt.js";
 import { conversationMemory, ConversationMemory } from "./memory/conversation-memory.js";
-import { searchProducts, PRODUCT_SEARCH_TOOL_DEF, type ProductSearchInput } from "./tools/product-search.tool.js";
+import { runAgentLoop, parseToolArgs } from "./agent-loop.js";
+import { searchProducts, PRODUCT_SEARCH_TOOL_DEF, type ProductSearchInput, type ProductSearchResult } from "./tools/product-search.tool.js";
 import { lookupCustomer, CUSTOMER_LOOKUP_TOOL_DEF, type CustomerLookupInput } from "./tools/customer-lookup.tool.js";
-import { createOrderFromChat, ORDER_CREATION_TOOL_DEF, type OrderCreationInput } from "./tools/order-creation.tool.js";
+import { createOrderFromChat, ORDER_CREATION_TOOL_DEF, type OrderCreationInput, type OrderCreationResult } from "./tools/order-creation.tool.js";
 import { getOrderStatus, ORDER_STATUS_TOOL_DEF, type OrderStatusInput } from "./tools/order-status.tool.js";
 
 const ALL_TOOLS: AiToolDef[] = [
@@ -15,16 +15,16 @@ const ALL_TOOLS: AiToolDef[] = [
   ORDER_STATUS_TOOL_DEF,
 ];
 
-const MAX_TOOL_ROUNDS = 5;
-
 export interface AgentResponse {
   reply: string;
   toolsUsed: string[];
 }
 
+const FALLBACK_REPLY = "عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى. / Sorry, an error occurred. Please try again.";
+
 /**
- * Process a customer message through the AI agent.
- * Manages conversation memory, native tool calling loop, and response generation.
+ * Process a customer message through the AI customer-support agent.
+ * Manages conversation memory and the shared tool-calling loop.
  */
 export async function handleCustomerMessage(
   storeId: string,
@@ -33,66 +33,73 @@ export async function handleCustomerMessage(
   message: string,
 ): Promise<AgentResponse> {
   const sessionKey = ConversationMemory.sessionKey(storeId, telegramUserId);
-  const toolsUsed: string[] = [];
 
   conversationMemory.addMessage(sessionKey, { role: "user", content: message });
-
-  const systemPrompt = buildCustomerSupportPrompt(storeName);
   const session = conversationMemory.get(sessionKey)!;
 
-  // Build the message list for this request. The system prompt is always first,
-  // followed by the conversation history. Tool call/result messages are added
-  // within the loop and NOT persisted to conversation memory (they're ephemeral
-  // context for the current turn).
-  const messages: AiMessage[] = [
-    { role: "system", content: systemPrompt },
-    ...session.messages,
-  ];
+  const result = await runAgentLoop({
+    systemPrompt: buildCustomerSupportPrompt(storeName),
+    messages: session.messages,
+    tools: ALL_TOOLS,
+    temperature: 0.5,
+    maxTokens: 2048,
+    executeTool: (name, argsJson) => executeTool(name, argsJson, storeId, telegramUserId),
+    onToolResult: (name, argsJson, toolResult) => {
+      updateDraftFromToolResult(sessionKey, name, argsJson, toolResult);
+    },
+  });
 
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const result = await aiComplete({
-      messages,
-      tools: ALL_TOOLS,
-      temperature: 0.5,
-      maxTokens: 2048,
-    });
+  const reply = result.reply || FALLBACK_REPLY;
+  conversationMemory.addMessage(sessionKey, { role: "assistant", content: reply });
+  return { reply, toolsUsed: result.toolsUsed };
+}
 
-    // If the model returned text (not tool calls), we're done.
-    if (result.toolCalls.length === 0) {
-      const reply = result.content ?? "عذراً، لم أتمكن من الرد. / Sorry, I couldn't respond.";
-      conversationMemory.addMessage(sessionKey, { role: "assistant", content: reply });
-      return { reply, toolsUsed };
+function updateDraftFromToolResult(
+  sessionKey: string,
+  toolName: string,
+  argsJson: string,
+  result: unknown,
+): void {
+  try {
+    if (toolName === "search_products") {
+      const products = result as ProductSearchResult[];
+      if (products.length === 1) {
+        const p = products[0]!;
+        conversationMemory.updateDraft(sessionKey, {
+          items: [{ productId: p.id, productName: p.name, quantity: 1, size: null, color: null }],
+        });
+      }
     }
 
-    // The model wants to call tools. Add the assistant's tool-call message,
-    // execute each tool, and add the results.
-    messages.push({
-      role: "assistant",
-      content: null,
-      tool_calls: result.toolCalls,
-    });
+    if (toolName === "lookup_customer") {
+      const lookup = result as { found: boolean; customer: { name: string | null; phone: string | null; wilaya: string | null; address: string | null } | null };
+      if (lookup.found && lookup.customer) {
+        conversationMemory.updateDraft(sessionKey, {
+          customerName: lookup.customer.name,
+          customerPhone: lookup.customer.phone,
+          wilaya: lookup.customer.wilaya,
+          address: lookup.customer.address,
+        });
+      }
+    }
 
-    for (const toolCall of result.toolCalls) {
-      const toolName = toolCall.function.name;
-      toolsUsed.push(toolName);
-
-      logger.debug({ toolName, sessionKey, round }, "AI agent invoking tool");
-
-      const toolResult = await executeTool(toolName, toolCall.function.arguments, storeId, telegramUserId);
-
-      messages.push({
-        role: "tool",
-        content: JSON.stringify(toolResult),
-        tool_call_id: toolCall.id,
+    if (toolName === "create_order") {
+      const args = JSON.parse(argsJson) as Record<string, unknown>;
+      const creation = result as OrderCreationResult;
+      conversationMemory.updateDraft(sessionKey, {
+        customerName: typeof args.customerName === "string" ? args.customerName : null,
+        customerPhone: typeof args.customerPhone === "string" ? args.customerPhone : null,
+        wilaya: typeof args.wilaya === "string" ? args.wilaya : null,
+        address: typeof args.address === "string" ? args.address : null,
+        confirmed: creation.success,
       });
+      if (creation.success) {
+        conversationMemory.resetDraft(sessionKey);
+      }
     }
-    // Loop continues — the model will see the tool results and either respond or call more tools.
+  } catch {
+    // Draft tracking is best-effort — never fail the agent loop.
   }
-
-  // Exceeded max rounds — return a fallback.
-  const fallback = "عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى. / Sorry, an error occurred. Please try again.";
-  conversationMemory.addMessage(sessionKey, { role: "assistant", content: fallback });
-  return { reply: fallback, toolsUsed };
 }
 
 async function executeTool(
@@ -101,12 +108,8 @@ async function executeTool(
   storeId: string,
   telegramUserId: string,
 ): Promise<unknown> {
-  let args: Record<string, unknown>;
-  try {
-    args = JSON.parse(argsJson) as Record<string, unknown>;
-  } catch {
-    return { error: "Invalid tool arguments" };
-  }
+  const args = parseToolArgs(argsJson);
+  if ("error" in args) return args;
 
   try {
     switch (name) {

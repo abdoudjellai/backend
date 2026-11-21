@@ -26,7 +26,15 @@ describe("GET /health", () => {
     expect(res.body.data).toMatchObject({ status: "ok", checks: { storage: "ok" } });
 
     const files = (await readdir(storage.directory)).sort();
-    expect(files).toEqual(["ai-analytics.json", "customers.json", "orders.json", "products.json", "stores.json"]);
+    expect(files).toEqual([
+      "ai-analytics.json",
+      "customers.json",
+      "orders.json",
+      "owner-conversations.json",
+      "owner-messages.json",
+      "products.json",
+      "stores.json",
+    ]);
     for (const file of files) {
       expect(JSON.parse(await readFile(join(storage.directory, file), "utf8"))).toEqual([]);
     }
